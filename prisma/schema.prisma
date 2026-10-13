@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,10 +7,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Produto {
+model categorias {
+  id       Int        @id @default(autoincrement())
+  nome     String     @unique @db.VarChar(80)
+  produtos produtos[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model movimentacoes {
+  id         Int               @id @default(autoincrement())
+  produto_id Int
+  tipo       tipo_movimentacao
+  quantidade Int
+  criado_em  DateTime          @default(now()) @db.Timestamptz(6)
+  produtos   produtos          @relation(fields: [produto_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([produto_id], map: "idx_movimentacoes_produto")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model produtos {
+  id            Int             @id @default(autoincrement())
+  nome          String          @db.VarChar(120)
+  descricao     String?
+  preco         Decimal         @db.Decimal(10, 2)
+  quantidade    Int             @default(0)
+  categoria_id  Int?
+  ativo         Boolean         @default(true)
+  criado_em     DateTime        @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime        @default(now()) @db.Timestamptz(6)
+  movimentacoes movimentacoes[]
+  categorias    categorias?     @relation(fields: [categoria_id], references: [id], onUpdate: NoAction)
+
+  @@index([categoria_id], map: "idx_produtos_categoria")
+}
+
+model usuarios {
   id         Int      @id @default(autoincrement())
-  nome       String
-  quantidade Int      @default(0)
-  preco      Decimal  @db.Decimal(10, 2)
-  criadoEm   DateTime @default(now())
+  nome       String   @db.VarChar(100)
+  email      String   @unique @db.VarChar(150)
+  senha_hash String   @db.VarChar(100)
+  criado_em  DateTime @default(now()) @db.Timestamptz(6)
+}
+
+enum tipo_movimentacao {
+  ENTRADA
+  SAIDA
 }
