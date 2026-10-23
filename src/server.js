@@ -1,5 +1,8 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken'; 
+import { autenticar } from './middlewares/auth.js';
+
 
 const app = express();
 const prisma = new PrismaClient();
@@ -7,9 +10,22 @@ const prisma = new PrismaClient();
 // Permite que o Express entenda JSON enviado pelo Postman
 app.use(express.json());
 
-// ==========================================
+//Usuario ----------------------------------------------------------
+
+app.post('/usuarios', async (req, res) => {
+  try {
+    const novoUser = await prisma.usuarios.create({
+      data: req.body
+    });
+    res.status(201).json(novoUser);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao cadastrar usuario.' });
+  }
+});
 
 
+//Categorias ======================================================
 
 app.post('/categorias', async (req, res) => {
   try {
@@ -23,8 +39,9 @@ app.post('/categorias', async (req, res) => {
   }
 });
 
-// ==========================================
+// Produtos ------------------------------------------------------
 
+// mostrar todos
 
 app.get('/produtos', async (req, res) => {
   try {
@@ -35,6 +52,8 @@ app.get('/produtos', async (req, res) => {
     res.status(500).json({ error: 'Erro ao buscar produtos.' });
   }
 });
+
+//procurar pelo id
 
 app.get('/produtos/:id', async (req, res) => {
   try {
@@ -54,7 +73,11 @@ app.get('/produtos/:id', async (req, res) => {
   }
 });
 
-app.post('/produtos', async (req, res) => {
+// cadastrar produto 
+
+app.post('/produtos', autenticar, async (req, res) => {
+  const usuarioId = req.usuario.id;
+  
   try {
     const novoProduto = await prisma.produtos.create({
       data: req.body
@@ -66,7 +89,11 @@ app.post('/produtos', async (req, res) => {
   }
 });
 
-app.put('/produtos/:id', async (req, res) => {
+//atualizar produto 
+
+app.put('/produtos/:id', autenticar,  async (req, res) => {
+  const usuarioId = req.usuario.id;
+
   try {
     const id = parseInt(req.params.id);
     const produtoAtualizado = await prisma.produtos.update({
@@ -80,7 +107,53 @@ app.put('/produtos/:id', async (req, res) => {
   }
 });
 
-app.delete('/produtos/:id', async (req, res) => {
+
+//adicionar quantidade
+
+app.post('/produtos/:id/entrada', autenticar, async (req, res) => {
+    const usuarioId = req.usuario.id;
+
+  try {
+    const id = Number(req.params.id);
+    const { quantidade } = req.body;
+
+    await prisma.$executeRaw`
+      CALL registrar_entrada(${id}, ${quantidade}, ${id_usuario})
+    `;
+    res.json({ mensagem: 'Entrada registrada!' });
+  } catch (error) {
+    res.status(400).json({
+      erro: 'Erro ao registrar entrada'
+    });
+  }
+});
+
+// tirar quantidade
+
+app.post('/produtos/:id/saida', async (req, res) => {
+  const usuarioId = req.usuario.id;
+
+  try {
+    const id = Number(req.params.id);
+    const { quantidade } = req.body;
+
+    await prisma.$executeRaw`
+      CALL registrar_saida(${id}, ${quantidade})
+    `;
+
+    res.json({ mensagem: 'Saída registrada!' });
+  } catch (error) {
+    res.status(400).json({
+      erro: 'Erro ao registrar saída'
+    });
+  }
+});
+
+// excluir produto
+
+app.delete('/produtos/:id', autenticar, async (req, res) => {
+  const usuarioId = req.usuario.id;
+
   try {
     const id = parseInt(req.params.id);
     const registroDeletado = await prisma.produtos.delete({
@@ -93,10 +166,10 @@ app.delete('/produtos/:id', async (req, res) => {
   }
 });
 
-// ==========================================
-// ⚙️ INICIALIZAÇÃO DO SERVIDOR
-// ==========================================
+
+//Servidor --------------------------------------------------------------------
+
 const PORT = 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor ativo e pronto para o Postman em http://localhost:${PORT}`);
+  console.log(`Servidor ativo em http://localhost:${PORT}`);
 });
