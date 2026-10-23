@@ -162,7 +162,9 @@ app.put('/produtos/:id', autenticar,  async (req, res) => {
 //adicionar quantidade
 
 app.post('/produtos/:id/entrada', autenticar, async (req, res) => {
-    const usuarioId = req.usuario.id;
+    const usuarioId = Number(req.usuario.id);
+    const id = Number(req.params.id);
+    const { quantidade } = req.body;
 
   try {
     const id = Number(req.params.id);
@@ -182,7 +184,9 @@ app.post('/produtos/:id/entrada', autenticar, async (req, res) => {
 // tirar quantidade
 
 app.post('/produtos/:id/saida', async (req, res) => {
-  const usuarioId = req.usuario.id;
+  const usuarioId = Number(req.usuario.id);
+    const id = Number(req.params.id);
+    const { quantidade } = req.body;
 
   try {
     const id = Number(req.params.id);
