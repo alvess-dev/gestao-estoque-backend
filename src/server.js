@@ -75,6 +75,48 @@ app.post('/login', limiteLogin, async (req, res) => {
   }
 });
 
+//verificar sessão
+
+app.get('/auth/me', autenticar, async (req, res) => {
+  try {
+    const usuario = await prisma.usuarios.findUnique({
+      where: { id: Number(req.usuario.id) },
+      select: {
+        id: true,
+        email: true,
+        nome: true,
+      },
+    });
+
+    if (!usuario) {
+      return res.status(401).json({
+        erro: 'Usuário não encontrado.',
+      });
+    }
+
+    res.json({ usuario });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      erro: 'Erro ao verificar sessão.',
+    });
+  }
+});
+
+//fazer logout
+app.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+
+  res.json({
+    mensagem: 'Logout realizado com sucesso.',
+  });
+});
+
 
 //Categorias ======================================================
 
