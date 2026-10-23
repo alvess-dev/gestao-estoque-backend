@@ -138,11 +138,37 @@ app.post('/categorias', async (req, res) => {
 
 app.get('/produtos', async (req, res) => {
   try {
-    const produtos = await prisma.produtos.findMany();
+    const { categoriaId } = req.query;
+
+    // Se categoriaId for informado, filtra pela categoria.
+    // Caso contrário, retorna todos os produtos.
+    const where = {};
+
+    if (categoriaId !== undefined) {
+      const id = Number(categoriaId);
+
+      if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({
+          erro: 'O ID da categoria deve ser um número inteiro positivo.',
+        });
+      }
+
+      where.categoria_id = id;
+    }
+
+    const produtos = await prisma.produtos.findMany({
+      where,
+      include: {
+        categorias: true,
+      },
+    });
+
     res.json(produtos);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Erro ao buscar produtos.' });
+    res.status(500).json({
+      erro: 'Erro ao buscar produtos.',
+    });
   }
 });
 
