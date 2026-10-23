@@ -2,25 +2,29 @@
 import jwt from 'jsonwebtoken';
 
 export function autenticar(req, res, next) {
-  const token = req.headers.authorization?.split(' ')[1];
+  const token = req.cookies?.token;
 
   if (!token) {
     return res.status(401).json({
-      erro: 'Faça login para continuar.'
+      erro: 'Autenticação necessária.',
     });
   }
 
   try {
-    const dadosUsuario = jwt.verify(
+    const payload = jwt.verify(
       token,
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
+      { algorithms: ['HS256'] }
     );
 
-    req.usuario = dadosUsuario;
+    req.usuario = {
+      id: payload.sub,
+    };
+
     next();
-  } catch (error) {
+  } catch {
     return res.status(401).json({
-      erro: 'Token inválido ou expirado.'
+      erro: 'Sessão inválida ou expirada.',
     });
   }
 }

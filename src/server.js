@@ -7,20 +7,71 @@ import { autenticar } from './middlewares/auth.js';
 const app = express();
 const prisma = new PrismaClient();
 
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+}));
+
 // Permite que o Express entenda JSON enviado pelo Postman
 app.use(express.json());
 
 //Usuario ----------------------------------------------------------
 
-app.post('/usuarios', async (req, res) => {
+app.post('/login', limiteLogin, async (req, res) => {
   try {
-    const novoUser = await prisma.usuarios.create({
-      data: req.body
+    const { email, senha } = req.body;
+
+    if (
+      typeof email !== 'string' ||
+      typeof senha !== 'string'
+    ) {
+      return res.status(400).json({
+        erro: 'Informe e-mail e senha.',
+      });
+    }
+
+    const usuario = await prisma.usuarios.findUnique({
+      where: { email },
     });
-    res.status(201).json(novoUser);
+
+    if (
+      !usuario ||
+      !(await bcrypt.compare(senha, usuario.password))
+    ) {
+      return res.status(401).json({
+        erro: 'E-mail ou senha inválidos.',
+      });
+    }
+
+    const token = jwt.sign(
+      { sub: String(usuario.id) },
+      process.env.JWT_SECRET,
+      {
+        algorithm: 'HS256',
+        expiresIn: '15m',
+      }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    return res.json({
+      mensagem: 'Login realizado com sucesso.',
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+      },
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Erro ao cadastrar usuario.' });
+    return res.status(500).json({
+      erro: 'Erro interno ao realizar login.',
+    });
   }
 });
 
@@ -77,7 +128,7 @@ app.get('/produtos/:id', async (req, res) => {
 
 app.post('/produtos', autenticar, async (req, res) => {
   const usuarioId = req.usuario.id;
-  
+
   try {
     const novoProduto = await prisma.produtos.create({
       data: req.body
