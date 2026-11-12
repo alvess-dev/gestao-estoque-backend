@@ -2,6 +2,9 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken'; 
 import { autenticar } from './middlewares/auth.js';
+import cors from 'cors';
+import bcrypt from 'bcrypt';
+import cookieParser from 'cookie-parser';
 
 
 const app = express();
@@ -12,8 +15,9 @@ app.use(cors({
   credentials: true,
 }));
 
-// Permite que o Express entenda JSON enviado pelo Postman
 app.use(express.json());
+app.use(cookieParser());
+
 
 //Usuario ----------------------------------------------------------
 
@@ -120,7 +124,7 @@ app.post('/logout', (req, res) => {
 
 //Categorias ======================================================
 
-app.post('/categorias', async (req, res) => {
+app.post('/categorias', autenticar, async (req, res) => {
   try {
     const novaCategoria = await prisma.categorias.create({
       data: req.body
@@ -129,6 +133,19 @@ app.post('/categorias', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro ao criar categoria.' });
+  }
+});
+
+app.get('/categorias', async (req, res) => {
+  try {
+    const categorias = await prisma.categorias.findMany();
+
+    res.json(categorias);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      erro: 'Erro ao buscar categorias.',
+    });
   }
 });
 
@@ -230,7 +247,7 @@ app.put('/produtos/:id', autenticar,  async (req, res) => {
 //adicionar quantidade
 
 app.post('/produtos/:id/entrada', autenticar, async (req, res) => {
-    const usuarioId = Number(req.usuario.id);
+    const id_usuario = Number(req.usuario.id);
     const id = Number(req.params.id);
     const { quantidade } = req.body;
 
@@ -251,8 +268,8 @@ app.post('/produtos/:id/entrada', autenticar, async (req, res) => {
 
 // tirar quantidade
 
-app.post('/produtos/:id/saida', async (req, res) => {
-  const usuarioId = Number(req.usuario.id);
+app.post('/produtos/:id/saida', autenticar, async (req, res) => {
+  const id_usuario = Number(req.usuario.id);
     const id = Number(req.params.id);
     const { quantidade } = req.body;
 
@@ -275,7 +292,7 @@ app.post('/produtos/:id/saida', async (req, res) => {
 // excluir produto
 
 app.delete('/produtos/:id', autenticar, async (req, res) => {
-  const usuarioId = req.usuario.id;
+  const id_usuario = req.usuario.id;
 
   try {
     const id = parseInt(req.params.id);

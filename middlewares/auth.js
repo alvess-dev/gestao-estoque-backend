@@ -1,5 +1,8 @@
 
 import jwt from 'jsonwebtoken';
+import cookieParser from 'cookie-parser';
+
+app.use(cookieParser());
 
 export function autenticar(req, res, next) {
   const token = req.cookies?.token;
