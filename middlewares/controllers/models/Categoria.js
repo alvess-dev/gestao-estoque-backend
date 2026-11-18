@@ -2,7 +2,8 @@ import { prisma } from '../prisma.js';
 import { Produto } from '../models/Produto.js';
 
 export async function criar(dados) {
-  const produto = new Produto(dados);          // valida aqui
+  // valida os dados antes de salvar o produto
+  const produto = new Produto(dados);
   const salvo = await prisma.produtos.create({ data: produto.paraBanco() });
   return Produto.fromDB(salvo);
 }
@@ -15,8 +16,14 @@ export async function buscarPorId(id) {
 
 export async function atualizar(id, dados) {
   const produto = await buscarPorId(id);
-  if (dados.nome !== undefined) produto.nome = dados.nome;     // setter valida
-  if (dados.preco !== undefined) produto.preco = dados.preco;  // setter valida
+  if (dados.nome !== undefined) {
+    // o setter valida o nome atualizado
+    produto.nome = dados.nome;
+  }
+  if (dados.preco !== undefined) {
+    // o setter valida o preço atualizado
+    produto.preco = dados.preco;
+  }
 
   const salvo = await prisma.produtos.update({
     where: { id },

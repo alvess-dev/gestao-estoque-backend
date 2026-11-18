@@ -16,10 +16,10 @@ async function chamarRotina(tx, tipo, produtoId, quantidade, usuarioId) {
   const temTresArgumentos = assinaturas.some(({ quantidade_parametros }) => quantidade_parametros === 3);
   const temDoisArgumentos = assinaturas.some(({ quantidade_parametros }) => quantidade_parametros === 2);
 
-  // Prefer 3-arg version (usuario_id is NOT NULL in movimentacoes).
-  // Cast to integer to match procedure signatures (Prisma binds Int as bigint).
+  // prioriza a assinatura de três argumentos, pois usuario_id é obrigatório em movimentacoes
+  // converte para integer para corresponder à assinatura das procedures do postgres
   if (temTresArgumentos) {
-    // Procedure signature: (p_produto_id, p_usuario_id, p_quantidade)
+    // assinatura da procedure: (p_produto_id, p_usuario_id, p_quantidade)
     if (tipo === 'entrada') {
       await tx.$executeRaw`CALL public.registrar_entrada(${produtoId}::int, ${usuarioId}::int, ${quantidade}::int)`;
     } else {

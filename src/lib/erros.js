@@ -20,7 +20,7 @@ export function tratarErro(err, req, res, next) {
     return res.status(404).json({ erro: 'Registro não encontrado.' });
   }
 
-  // Erros levantados por procedures do PostgreSQL chegam como P2010.
+  // erros levantados por procedures do postgresql chegam como p2010
   if (err.code === 'P2010') {
     const detalhe = String(err.meta?.message ?? err.message ?? '').toLowerCase();
     if (detalhe.includes('estoque') || detalhe.includes('quantidade')) {

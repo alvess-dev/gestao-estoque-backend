@@ -6,8 +6,10 @@ export class Produto {
 
   constructor({ id = null, nome, preco, categoria_id }) {
     this.#id = id;
-    this.nome = nome;               // passa pelo setter (valida)
-    this.preco = preco;             // passa pelo setter (valida)
+    // atribui pelo setter para validar o nome
+    this.nome = nome;
+    // atribui pelo setter para validar o preço
+    this.preco = preco;
     this.#categoriaId = categoria_id;
   }
 
@@ -33,12 +35,12 @@ export class Produto {
     this.#preco = n;
   }
 
-  // transforma o objeto do Prisma em Produto
+  // transforma o objeto do prisma em produto
   static fromDB(registro) {
     return new Produto(registro);
   }
 
-  // transforma o Produto no formato que o Prisma espera
+  // transforma o produto no formato que o prisma espera
   paraBanco() {
     return {
       nome: this.#nome,
