@@ -13,10 +13,18 @@ async function chamarRotina(tx, tipo, produtoId, quantidade, usuarioId) {
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public' AND p.proname = ${rotina} AND p.prokind = 'p'
   `;
-  // Use the overload that records the authenticated user when it exists; otherwise use CALL(id, quantity).
-  const temUsuario = assinaturas.some(({ quantidade_parametros }) => quantidade_parametros === 3);
   const temDoisArgumentos = assinaturas.some(({ quantidade_parametros }) => quantidade_parametros === 2);
+  const temUsuario = assinaturas.some(({ quantidade_parametros }) => quantidade_parametros === 3);
 
+  // The database contract uses CALL(id, quantity); keep user-aware overloads as a fallback.
+  if (temDoisArgumentos) {
+    if (tipo === 'entrada') {
+      await tx.$executeRaw`CALL public.registrar_entrada(${produtoId}, ${quantidade})`;
+    } else {
+      await tx.$executeRaw`CALL public.registrar_saida(${produtoId}, ${quantidade})`;
+    }
+    return;
+  }
   if (temUsuario) {
     if (tipo === 'entrada') {
       await tx.$executeRaw`CALL public.registrar_entrada(${produtoId}, ${quantidade}, ${usuarioId})`;
@@ -25,14 +33,7 @@ async function chamarRotina(tx, tipo, produtoId, quantidade, usuarioId) {
     }
     return;
   }
-  if (!temDoisArgumentos) {
-    throw new ErroHttp(`A procedure ${rotina} não está disponível com os parâmetros esperados.`, 500);
-  }
-  if (tipo === 'entrada') {
-    await tx.$executeRaw`CALL public.registrar_entrada(${produtoId}, ${quantidade})`;
-  } else {
-    await tx.$executeRaw`CALL public.registrar_saida(${produtoId}, ${quantidade})`;
-  }
+  throw new ErroHttp(`A procedure ${rotina} não está disponível com os parâmetros esperados.`, 500);
 }
 
 export function validarQuantidade(valor, { podeSerZero = false } = {}) {
