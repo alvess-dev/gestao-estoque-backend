@@ -98,9 +98,10 @@ export async function excluir(req, res) {
   const id = idInteiro(req.params.id, 'Produto');
   const existente = await prisma.produtos.findUnique({ where: { id }, select: { id: true } });
   if (!existente) throw new ErroHttp('Produto não encontrado.', 404);
-  const movimentos = await prisma.movimentacoes.count({ where: { produto_id: id } });
-  if (movimentos > 0) throw new ErroHttp('Este produto tem movimentações registradas. Desative-o pela edição para preservar o histórico.', 409);
-  await prisma.produtos.delete({ where: { id } });
+  await prisma.$transaction([
+    prisma.movimentacoes.deleteMany({ where: { produto_id: id } }),
+    prisma.produtos.delete({ where: { id } }),
+  ]);
   return res.status(204).end();
 }
 

@@ -4,8 +4,8 @@ import * as c from '../controllers/produtos.controller.js';
 
 const router = Router();
 
-router.get('/', c.listar);
-router.get('/:id', c.buscarPorId);
+router.get('/', autenticar, c.listar);
+router.get('/:id', autenticar, c.buscarPorId);
 router.get('/:id/movimentacoes', autenticar, c.listarMovimentacoes);
 
 router.post('/', autenticar, c.criar);

@@ -13,23 +13,25 @@ async function chamarRotina(tx, tipo, produtoId, quantidade, usuarioId) {
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public' AND p.proname = ${rotina} AND p.prokind = 'p'
   `;
+  const temTresArgumentos = assinaturas.some(({ quantidade_parametros }) => quantidade_parametros === 3);
   const temDoisArgumentos = assinaturas.some(({ quantidade_parametros }) => quantidade_parametros === 2);
-  const temUsuario = assinaturas.some(({ quantidade_parametros }) => quantidade_parametros === 3);
 
-  // The database contract uses CALL(id, quantity); keep user-aware overloads as a fallback.
-  if (temDoisArgumentos) {
+  // Prefer 3-arg version (usuario_id is NOT NULL in movimentacoes).
+  // Cast to integer to match procedure signatures (Prisma binds Int as bigint).
+  if (temTresArgumentos) {
+    // Procedure signature: (p_produto_id, p_usuario_id, p_quantidade)
     if (tipo === 'entrada') {
-      await tx.$executeRaw`CALL public.registrar_entrada(${produtoId}, ${quantidade})`;
+      await tx.$executeRaw`CALL public.registrar_entrada(${produtoId}::int, ${usuarioId}::int, ${quantidade}::int)`;
     } else {
-      await tx.$executeRaw`CALL public.registrar_saida(${produtoId}, ${quantidade})`;
+      await tx.$executeRaw`CALL public.registrar_saida(${produtoId}::int, ${usuarioId}::int, ${quantidade}::int)`;
     }
     return;
   }
-  if (temUsuario) {
+  if (temDoisArgumentos) {
     if (tipo === 'entrada') {
-      await tx.$executeRaw`CALL public.registrar_entrada(${produtoId}, ${quantidade}, ${usuarioId})`;
+      await tx.$executeRaw`CALL public.registrar_entrada(${produtoId}::int, ${quantidade}::int)`;
     } else {
-      await tx.$executeRaw`CALL public.registrar_saida(${produtoId}, ${quantidade}, ${usuarioId})`;
+      await tx.$executeRaw`CALL public.registrar_saida(${produtoId}::int, ${quantidade}::int)`;
     }
     return;
   }
