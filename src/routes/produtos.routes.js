@@ -6,6 +6,7 @@ const router = Router();
 
 router.get('/', c.listar);
 router.get('/:id', c.buscarPorId);
+router.get('/:id/movimentacoes', autenticar, c.listarMovimentacoes);
 
 router.post('/', autenticar, c.criar);
 router.put('/:id', autenticar, c.atualizar);
