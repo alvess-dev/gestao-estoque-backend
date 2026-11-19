@@ -38,6 +38,8 @@ npm run db:validate
 
 Este repositório não inclui migrations nem cria as tabelas automaticamente. Conecte a API a um banco que já tenha o schema de estoque, o enum `tipo_movimentacao`, as procedures `registrar_entrada` e `registrar_saida` e os triggers usados para movimentações e atualização de `atualizado_em`.
 
+Para adicionar a URL opcional da imagem à tabela existente no Supabase, execute `prisma/add_imagem_url.sql` uma vez. A coluna `imagem_url` aceita URLs ou caminhos de imagem como texto.
+
 ## Executar
 
 Para desenvolvimento, com reinício automático ao alterar arquivos:
@@ -63,7 +65,7 @@ As principais rotas autenticadas são:
 - `GET`, `POST`, `PUT` e `DELETE /produtos`
 - `POST /produtos/:id/entrada` e `POST /produtos/:id/saida`
 - `GET`, `POST`, `PUT` e `DELETE /categorias`
-- `GET /auth/me` e `POST /logout`
+- `GET /auth/me`, `PUT /auth/password` e `POST /logout`
 
 ## Comandos disponíveis
 

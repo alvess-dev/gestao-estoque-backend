@@ -22,6 +22,14 @@ function validarProduto(dados, { criacao = false } = {}) {
     }
     data.descricao = dados.descricao?.trim?.() || null;
   }
+  if (criacao || dados.imagem_url !== undefined) {
+    if (dados.imagem_url !== undefined && dados.imagem_url !== null && typeof dados.imagem_url !== 'string') {
+      throw new ErroHttp('A imagem do produto deve ser uma URL em texto.');
+    }
+    const imagemUrl = dados.imagem_url?.trim?.() || null;
+    if (imagemUrl && imagemUrl.length > 2048) throw new ErroHttp('A URL da imagem deve ter no máximo 2048 caracteres.');
+    data.imagem_url = imagemUrl;
+  }
   if (criacao || dados.preco !== undefined) {
     if (dados.preco === '' || dados.preco === null || dados.preco === undefined) throw new ErroHttp('Informe um preço válido.');
     const preco = Number(dados.preco);

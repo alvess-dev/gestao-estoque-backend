@@ -48,6 +48,38 @@ export async function me(req, res) {
   return res.json({ usuario });
 }
 
+export async function alterarSenha(req, res) {
+  const senhaAtual = req.body?.senhaAtual;
+  const novaSenha = req.body?.novaSenha;
+  if (typeof senhaAtual !== 'string' || !senhaAtual || typeof novaSenha !== 'string' || !novaSenha) {
+    throw new ErroHttp('Informe a senha atual e a nova senha.', 400, 'PASSWORD_FIELDS_REQUIRED');
+  }
+  if (novaSenha.length < 8) {
+    throw new ErroHttp('A nova senha deve ter pelo menos 8 caracteres.', 400, 'PASSWORD_TOO_SHORT');
+  }
+
+  const usuario = await prisma.usuarios.findUnique({
+    where: { id: req.usuario.id },
+    select: { id: true, senha_hash: true },
+  });
+  if (!usuario) throw new ErroHttp('Usuário não encontrado.', 404);
+
+  if (!await bcrypt.compare(senhaAtual, usuario.senha_hash)) {
+    throw new ErroHttp('A senha atual está incorreta.', 400, 'CURRENT_PASSWORD_INVALID');
+  }
+  if (await bcrypt.compare(novaSenha, usuario.senha_hash)) {
+    throw new ErroHttp('A nova senha deve ser diferente da senha atual.', 400, 'PASSWORD_UNCHANGED');
+  }
+
+  const senha_hash = await bcrypt.hash(novaSenha, 10);
+  await prisma.usuarios.update({
+    where: { id: usuario.id },
+    data: { senha_hash },
+  });
+
+  return res.json({ mensagem: 'Senha alterada com sucesso.' });
+}
+
 export function logout(req, res) {
   return res.clearCookie('token', opcoesCookie()).json({ mensagem: 'Sessão encerrada.' });
 }

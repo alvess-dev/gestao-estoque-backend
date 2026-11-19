@@ -1,14 +1,19 @@
 export class ErroHttp extends Error {
-  constructor(mensagem, status = 400) {
+  constructor(mensagem, status = 400, codigo = null) {
     super(mensagem);
     this.name = 'ErroHttp';
     this.status = status;
+    this.codigo = codigo;
   }
 }
 
 export function tratarErro(err, req, res, next) {
   if (res.headersSent) return next(err);
-  if (err.status) return res.status(err.status).json({ erro: err.message });
+  if (err.status) {
+    const payload = { erro: err.message };
+    if (err.codigo) payload.codigo = err.codigo;
+    return res.status(err.status).json(payload);
+  }
 
   if (err.code === 'P2002') {
     return res.status(409).json({ erro: 'Já existe um registro com esses dados.' });
