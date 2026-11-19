@@ -21,6 +21,7 @@ Crie um arquivo `.env` na raiz do back-end. Preencha as URLs com os dados do seu
 DATABASE_URL="postgresql://USUARIO:SENHA@HOST:5432/NOME_DO_BANCO?schema=public"
 DIRECT_URL="postgresql://USUARIO:SENHA@HOST:5432/NOME_DO_BANCO?schema=public"
 JWT_SECRET="substitua-por-um-segredo-aleatorio"
+REMOVE_BG_API_KEY="sua_chave_do_remove.bg"
 PORT=3000
 FRONTEND_URL="http://localhost:5173"
 ```
@@ -38,7 +39,9 @@ npm run db:validate
 
 Este repositório não inclui migrations nem cria as tabelas automaticamente. Conecte a API a um banco que já tenha o schema de estoque, o enum `tipo_movimentacao`, as procedures `registrar_entrada` e `registrar_saida` e os triggers usados para movimentações e atualização de `atualizado_em`.
 
-Para adicionar a URL opcional da imagem à tabela existente no Supabase, execute `prisma/add_imagem_url.sql` uma vez. A coluna `imagem_url` aceita URLs ou caminhos de imagem como texto.
+Para adicionar o campo de imagem à tabela existente no Supabase, execute `prisma/add_imagem_url.sql` uma vez. A coluna `imagem_url` guarda a imagem compactada como data URL.
+
+O formulário de produtos armazena uma imagem WebP compactada no campo `imagem_url`. Ao pedir a remoção de fundo, a API envia o arquivo ao remove.bg; configure `REMOVE_BG_API_KEY` no `.env` do back-end. O endpoint aceita JPEG, PNG e WebP de até 20 MB e é limitado a 20 processamentos por hora.
 
 ## Executar
 

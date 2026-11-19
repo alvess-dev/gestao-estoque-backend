@@ -3,6 +3,7 @@ import { ErroHttp } from '../lib/erros.js';
 import { alterarQuantidade, registrarMovimentacao, validarQuantidade } from '../services/estoque.service.js';
 
 const incluirCategoria = { categorias: { select: { id: true, nome: true } } };
+const MAX_IMAGEM_DATA_URL_LENGTH = 1_500_000;
 
 function idInteiro(valor, nome = 'ID') {
   const id = Number(valor);
@@ -24,10 +25,18 @@ function validarProduto(dados, { criacao = false } = {}) {
   }
   if (criacao || dados.imagem_url !== undefined) {
     if (dados.imagem_url !== undefined && dados.imagem_url !== null && typeof dados.imagem_url !== 'string') {
-      throw new ErroHttp('A imagem do produto deve ser uma URL em texto.');
+      throw new ErroHttp('A imagem do produto deve ser um texto.');
     }
     const imagemUrl = dados.imagem_url?.trim?.() || null;
-    if (imagemUrl && imagemUrl.length > 2048) throw new ErroHttp('A URL da imagem deve ter no máximo 2048 caracteres.');
+    if (imagemUrl && imagemUrl.length > MAX_IMAGEM_DATA_URL_LENGTH) {
+      throw new ErroHttp('A imagem do produto excede o tamanho permitido.', 413, 'IMAGE_TOO_LARGE');
+    }
+    if (imagemUrl?.startsWith('data:') && !/^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(imagemUrl)) {
+      throw new ErroHttp('A imagem precisa estar em formato WebP, PNG ou JPEG.');
+    }
+    if (imagemUrl && !imagemUrl.startsWith('data:') && imagemUrl.length > 2048) {
+      throw new ErroHttp('A URL da imagem deve ter no máximo 2048 caracteres.');
+    }
     data.imagem_url = imagemUrl;
   }
   if (criacao || dados.preco !== undefined) {
@@ -146,4 +155,37 @@ export async function listarMovimentacoes(req, res) {
     orderBy: { criado_em: 'desc' },
   });
   return res.json(movimentacoes);
+}
+
+export async function removerFundoImagem(req, res) {
+  if (!req.file) throw new ErroHttp('Envie um arquivo de imagem.', 400, 'IMAGE_REQUIRED');
+  const apiKey = process.env.REMOVE_BG_API_KEY;
+  if (!apiKey) throw new ErroHttp('A chave do remove.bg não está configurada.', 503, 'REMOVE_BG_NOT_CONFIGURED');
+
+  const body = new FormData();
+  body.append('image_file', new Blob([req.file.buffer], { type: req.file.mimetype }), req.file.originalname);
+  body.append('size', 'preview');
+  body.append('format', 'png');
+
+  let response;
+  try {
+    response = await fetch('https://api.remove.bg/v1.0/removebg', {
+      method: 'POST',
+      headers: { 'X-Api-Key': apiKey },
+      body,
+    });
+  } catch {
+    throw new ErroHttp('Não foi possível conectar ao serviço de remoção de fundo.', 502, 'REMOVE_BG_FAILED');
+  }
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ErroHttp('A chave do remove.bg foi recusada.', 503, 'REMOVE_BG_NOT_CONFIGURED');
+    }
+    throw new ErroHttp('O remove.bg não conseguiu processar essa imagem.', 502, 'REMOVE_BG_FAILED');
+  }
+
+  const image = Buffer.from(await response.arrayBuffer());
+  if (image.length === 0) throw new ErroHttp('O remove.bg retornou uma imagem vazia.', 502, 'REMOVE_BG_FAILED');
+  return res.type('png').send(image);
 }

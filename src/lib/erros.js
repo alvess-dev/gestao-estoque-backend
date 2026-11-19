@@ -14,6 +14,9 @@ export function tratarErro(err, req, res, next) {
     if (err.codigo) payload.codigo = err.codigo;
     return res.status(err.status).json(payload);
   }
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ erro: 'A imagem deve ter no máximo 20 MB.', codigo: 'IMAGE_TOO_LARGE' });
+  }
 
   if (err.code === 'P2002') {
     return res.status(409).json({ erro: 'Já existe um registro com esses dados.' });
