@@ -1,7 +1,10 @@
 import jwt from 'jsonwebtoken';
 
 export function autenticar(req, res, next) {
-  const token = req.cookies?.token;
+  const authorization = req.get('authorization');
+  const token = authorization
+    ? authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim()
+    : req.cookies?.token;
   if (!token) return res.status(401).json({ erro: 'Autenticação necessária.' });
 
   try {

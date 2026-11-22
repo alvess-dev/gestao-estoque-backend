@@ -28,6 +28,16 @@ export function tratarErro(err, req, res, next) {
     return res.status(404).json({ erro: 'Registro não encontrado.' });
   }
 
+  const erroDeConexaoComBanco = ['P1000', 'P1001', 'P1002', 'P1017'].includes(err.code)
+    || /Can't reach database server|Timed out fetching a new connection|Connection terminated unexpectedly/i.test(err.message ?? '');
+  if (erroDeConexaoComBanco) {
+    console.error(err);
+    return res.status(503).json({
+      erro: 'Banco de dados indisponível. Verifique a conexão configurada.',
+      codigo: 'DATABASE_UNAVAILABLE',
+    });
+  }
+
   // erros levantados por procedures do postgresql chegam como p2010
   if (err.code === 'P2010') {
     const detalhe = String(err.meta?.message ?? err.message ?? '').toLowerCase();

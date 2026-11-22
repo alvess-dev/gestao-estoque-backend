@@ -36,7 +36,7 @@ export async function login(req, res) {
     expiresIn: '8h',
   });
   return res.cookie('token', token, { ...opcoesCookie(), maxAge: TOKEN_MAX_AGE })
-    .json({ usuario: dadosPublicos(usuario) });
+    .json({ token, usuario: dadosPublicos(usuario) });
 }
 
 export async function me(req, res) {
