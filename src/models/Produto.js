@@ -85,6 +85,9 @@ export class Produto {
     this.#categoriaId = valor === null ? null : Number(valor);
   }
 
+  get categoriaId() { return this.categoria_id; }
+  set categoriaId(valor) { this.categoria_id = valor; }
+
   get ativo() { return this.#ativo; }
   set ativo(valor) {
     if (typeof valor !== 'boolean') {
@@ -95,6 +98,10 @@ export class Produto {
 
   get valorTotalEmEstoque() {
     return Math.round(this.preco * this.quantidade * 100) / 100;
+  }
+
+  static fromDB(registro) {
+    return new Produto(registro);
   }
 
   registrarEntrada(quantidade) {
@@ -119,6 +126,23 @@ export class Produto {
       ...(incluirQuantidade ? { quantidade: this.quantidade } : {}),
       categoria_id: this.categoria_id,
       ativo: this.ativo,
+    };
+  }
+
+  paraBanco() {
+    return {
+      nome: this.nome,
+      preco: this.preco,
+      categoria_id: this.categoria_id,
+    };
+  }
+
+  toJSON() {
+    return {
+      id: this.id,
+      nome: this.nome,
+      preco: this.preco,
+      categoria_id: this.categoria_id,
     };
   }
 
