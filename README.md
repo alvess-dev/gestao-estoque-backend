@@ -37,6 +37,8 @@ npm run db:generate
 npm run db:validate
 ```
 
+A classe de domínio `Produto` fica em `src/models/Produto.js`. O construtor inicializa os dados; os getters e setters acessam e validam as propriedades; `registrarEntrada` e `registrarSaida` aplicam as regras de estoque; e `valorTotalEmEstoque` calcula o valor atual do produto em estoque.
+
 Este repositório não inclui migrations nem cria as tabelas automaticamente. Conecte a API a um banco que já tenha o schema de estoque, o enum `tipo_movimentacao`, as procedures `registrar_entrada` e `registrar_saida` e os triggers usados para movimentações e atualização de `atualizado_em`.
 
 Para adicionar o campo de imagem à tabela existente no Supabase, execute `prisma/add_imagem_url.sql` uma vez. A coluna `imagem_url` guarda a imagem compactada como data URL.

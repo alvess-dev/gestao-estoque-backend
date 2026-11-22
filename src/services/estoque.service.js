@@ -1,4 +1,5 @@
 import { ErroHttp } from '../lib/erros.js';
+import { Produto } from '../models/Produto.js';
 
 const rotinas = {
   entrada: 'registrar_entrada',
@@ -53,8 +54,11 @@ export async function registrarMovimentacao(tx, tipo, produtoId, quantidade, usu
 
 export async function alterarQuantidade(tx, produto, novaQuantidade, usuarioId) {
   validarQuantidade(novaQuantidade, { podeSerZero: true });
-  const diferenca = novaQuantidade - produto.quantidade;
+  const entidade = new Produto(produto);
+  const diferenca = novaQuantidade - entidade.quantidade;
   if (diferenca === 0) return;
+  if (diferenca > 0) entidade.registrarEntrada(diferenca);
+  else entidade.registrarSaida(Math.abs(diferenca));
   await registrarMovimentacao(
     tx,
     diferenca > 0 ? 'entrada' : 'saida',

@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { ErroHttp } from '../lib/erros.js';
+import { Produto } from '../models/Produto.js';
 import { alterarQuantidade, registrarMovimentacao, validarQuantidade } from '../services/estoque.service.js';
 
 const incluirCategoria = { categorias: { select: { id: true, nome: true } } };
@@ -84,8 +85,9 @@ export async function buscarPorId(req, res) {
 export async function criar(req, res) {
   const dados = validarProduto(req.body ?? {}, { criacao: true });
   const quantidade = quantidadeRequisicao(req.body?.quantidade ?? 0, { podeSerZero: true });
+  const novoProduto = new Produto({ ...dados, quantidade });
   const produto = await prisma.$transaction(async (tx) => {
-    const criado = await tx.produtos.create({ data: { ...dados, quantidade: 0 } });
+    const criado = await tx.produtos.create({ data: { ...novoProduto.toPersistence(), quantidade: 0 } });
     if (quantidade > 0) await registrarMovimentacao(tx, 'entrada', criado.id, quantidade, req.usuario.id);
     return tx.produtos.findUnique({ where: { id: criado.id }, include: incluirCategoria });
   });
@@ -104,7 +106,13 @@ export async function atualizar(req, res) {
     await tx.$queryRaw`SELECT id FROM public.produtos WHERE id = ${id} FOR UPDATE`;
     const atual = await tx.produtos.findUnique({ where: { id } });
     if (!atual) throw new ErroHttp('Produto não encontrado.', 404);
-    if (Object.keys(dados).length > 0) await tx.produtos.update({ where: { id }, data: dados });
+    if (Object.keys(dados).length > 0) {
+      const produtoAtualizado = new Produto({ ...atual, ...dados });
+      await tx.produtos.update({
+        where: { id },
+        data: produtoAtualizado.toPersistence({ incluirQuantidade: false }),
+      });
+    }
     if (temQuantidade) await alterarQuantidade(tx, atual, quantidade, req.usuario.id);
     return tx.produtos.findUnique({ where: { id }, include: incluirCategoria });
   });
@@ -128,7 +136,11 @@ async function movimentar(req, res, tipo) {
   const produto = await prisma.$transaction(async (tx) => {
     const existente = await tx.produtos.findUnique({ where: { id } });
     if (!existente) throw new ErroHttp('Produto não encontrado.', 404);
-    if (tipo === 'saida' && quantidade > existente.quantidade) {
+    const produto = new Produto(existente);
+    const movimentacaoPermitida = tipo === 'entrada'
+      ? produto.registrarEntrada(quantidade)
+      : produto.registrarSaida(quantidade);
+    if (!movimentacaoPermitida) {
       throw new ErroHttp('A quantidade de saída não pode ser maior que o estoque disponível.', 409);
     }
     await registrarMovimentacao(tx, tipo, id, quantidade, req.usuario.id);
